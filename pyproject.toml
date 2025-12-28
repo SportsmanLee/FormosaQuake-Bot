@@ -1,5 +1,5 @@
 [project]
-name = "eew-discord-bot"
+name = "formosaquake-bot"
 version = "0.1.0"
 description = "Taiwan earthquake alert Discord bot (formal report only, CSV source)"
 readme = "Spec.md"

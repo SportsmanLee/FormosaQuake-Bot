@@ -236,7 +236,7 @@ wheels = [
 ]
 
 [[package]]
-name = "eew-discord-bot"
+name = "formosaquake-bot"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
