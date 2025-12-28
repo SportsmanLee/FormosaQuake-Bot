@@ -7,7 +7,7 @@ import asyncio
 import logging
 
 from config.settings import load_settings
-from notifier.discord_client import start_bot
+from notifier.discord_client import create_bot, start_bot
 from observability.logging_setup import setup_logging
 from service.backoff import Backoff
 from service.poller import poll_loop
@@ -32,7 +32,7 @@ async def async_main() -> None:
         base_url=str(settings.data_base_url), allow_insecure_ssl=settings.allow_insecure_ssl
     )
 
-    async def poller_task() -> None:
+    async def poller_task(client):
         await poll_loop(
             source=source,
             db=db,
@@ -41,16 +41,33 @@ async def async_main() -> None:
             tz=settings.tz,
             interval_seconds=settings.poll_interval_seconds,
             backoff=backoff,
+            client=client,
         )
 
     logging.info("Settings loaded; starting Discord bot and poller.")
-    poller = asyncio.create_task(poller_task())
+    bot = create_bot(db=db, allowed_guild_id=settings.allowed_guild_id)
+
+    async def poller_task_with_client() -> None:
+        await poll_loop(
+            source=source,
+            db=db,
+            top_n=settings.top_n,
+            intensity_threshold=settings.intensity_threshold,
+            tz=settings.tz,
+            interval_seconds=settings.poll_interval_seconds,
+            backoff=backoff,
+            client=bot,
+        )
+
+    poller: asyncio.Task | None = None
     try:
-        await start_bot(settings.discord_token, db=db, allowed_guild_id=settings.allowed_guild_id)
+        poller = asyncio.create_task(poller_task_with_client())
+        await start_bot(settings.discord_token, bot)
     finally:
-        poller.cancel()
-        with contextlib.suppress(Exception):
-            await poller
+        if poller:
+            poller.cancel()
+            with contextlib.suppress(Exception):
+                await poller
         await source.close()
 
 

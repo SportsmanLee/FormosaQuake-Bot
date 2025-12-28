@@ -8,6 +8,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from domain.models import EarthquakeEvent
+from notifier.publisher import apply_decisions
 from parsing.csv_parser import decode_big5, parse_csv
 from parsing.normalize import normalize_row
 from policies.publish import Decision, decide_actions
@@ -71,7 +72,7 @@ async def run_poll(
         published_lookup=published_lookup,
     )
 
-    # persist seen updates (all), published updates (send/edit only) to DB
+    # persist seen updates (all). Published updates are handled by publisher when send/edit succeeds.
     for action, ev, _prior in decisions:
         # seen
         repo.upsert_seen(
@@ -83,15 +84,6 @@ async def run_poll(
             data_hash=ev.fingerprint,
             last_payload=None,
         )
-        # published
-        if action in {Decision.SEND, Decision.EDIT}:
-            repo.upsert_published(
-                db,
-                event_key=ev.event_key,
-                channel_id="",  # channel mapping handled elsewhere
-                message_id="",  # placeholder until Discord send/edit occurs
-                last_published_hash=ev.fingerprint,
-            )
 
     return decisions
 
@@ -105,8 +97,13 @@ async def poll_loop(
     tz: str,
     interval_seconds: int,
     backoff: Backoff | None = None,
+    client: object | None = None,
 ) -> None:
-    """Loop forever, running poll on interval with optional backoff on failures."""
+    """Loop forever, running poll on interval with optional backoff on failures.
+
+    If `client` is provided (Discord client), will attempt to publish decisions to the
+    channel set via `/setup` (settings table). If no setting or disabled, only state is updated.
+    """
     failures = 0
     while True:
         try:
@@ -118,6 +115,21 @@ async def poll_loop(
                 tz=tz,
             )
             logging.info("poll finished; decisions=%d", len(decisions))
+
+            # optional publish
+            setting = repo.get_setting(db)
+            if setting:
+                channel_id, enabled = setting
+                if enabled and client:
+                    try:
+                        await apply_decisions(
+                            client=client,
+                            db=db,
+                            channel_id=channel_id,
+                            decisions=decisions,
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        logging.exception("publish error: %s", exc)
             failures = 0
             await asyncio.sleep(interval_seconds)
         except Exception as exc:  # noqa: BLE001

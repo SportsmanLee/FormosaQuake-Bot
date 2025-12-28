@@ -70,6 +70,9 @@ class DiscordBot(discord.Client):
         logging.info("Discord bot logged in as %s", self.user)
 
 
-async def start_bot(token: str, *, db: repo.Database, allowed_guild_id: int | None) -> None:
-    bot = DiscordBot(db=db, allowed_guild_id=allowed_guild_id)
+def create_bot(*, db: repo.Database, allowed_guild_id: int | None) -> DiscordBot:
+    return DiscordBot(db=db, allowed_guild_id=allowed_guild_id)
+
+
+async def start_bot(token: str, bot: DiscordBot) -> None:
     await bot.start(token)
