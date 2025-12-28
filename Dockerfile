@@ -2,6 +2,11 @@
 
 FROM python:3.11-slim
 
+# Ensure CA certificates are present for TLS validation
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     UV_SYSTEM_PYTHON=1
