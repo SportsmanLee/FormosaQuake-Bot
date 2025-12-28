@@ -5,7 +5,6 @@ Loads settings, configures logging, and starts the Discord bot (commands not yet
 
 import asyncio
 import logging
-from pathlib import Path
 
 from config.settings import load_settings
 from notifier.discord_client import start_bot
@@ -20,8 +19,8 @@ async def async_main() -> None:
     db = Database(db_path=settings.sqlite_path)
     await async_init(db)
 
-    logging.info("Settings loaded; starting Discord bot (commands not yet wired).")
-    await start_bot(settings.discord_token)
+    logging.info("Settings loaded; starting Discord bot.")
+    await start_bot(settings.discord_token, db=db, allowed_guild_id=settings.allowed_guild_id)
 
 
 def main() -> None:
