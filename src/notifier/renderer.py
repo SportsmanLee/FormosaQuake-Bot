@@ -21,7 +21,12 @@ def _color_for_intensity(intensity: float | None) -> int:
 
 def render_embed(event: EarthquakeEvent) -> discord.Embed:
     color = _color_for_intensity(event.intensity_value)
-    title = f"地震速報 | {event.event_key}"
+    if event.event_key.startswith("E:"):
+        key_display = f"第{event.event_key[2:]}號"
+    else:
+        key_display = "未編號事件"
+
+    title = f"地震速報 | {key_display}"
     if event.intensity_raw:
         title += f" | 最大震度 {event.intensity_raw}"
 
@@ -34,7 +39,8 @@ def render_embed(event: EarthquakeEvent) -> discord.Embed:
     embed.add_field(name="震央", value=f"{event.lat:.4f}, {event.lon:.4f}")
     maps_url = f"https://www.google.com/maps?q={event.lat},{event.lon}"
     embed.add_field(name="地圖", value=maps_url, inline=False)
-    embed.set_footer(text=f"source={event.source}")
+    # Footer保留完整 event_key 供偵錯/去重觀察
+    embed.set_footer(text=f"source={event.source} | key={event.event_key}")
     return embed
 
 
