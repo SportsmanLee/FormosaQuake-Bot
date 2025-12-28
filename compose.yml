@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    image: formosaquake-bot:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - data:/data
+    environment:
+      - SQLITE_PATH=/data/bot.db
+      - TZ=${TZ:-Asia/Taipei}
+    # expose nothing by default; Discord/outbound only
+
+volumes:
+  data:
+    driver: local
