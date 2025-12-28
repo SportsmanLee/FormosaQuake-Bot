@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     intensity_threshold: float = 4.0
     tz: str = "Asia/Taipei"
     allowed_guild_id: int | None = None
+    backoff_base_seconds: float | None = None
+    backoff_max_seconds: float | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
