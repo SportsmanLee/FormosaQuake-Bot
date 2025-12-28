@@ -1,6 +1,6 @@
 # Spec: CWA CSV 公告 Bot（最終規格）
 
-以中央氣象署網站的 CSV 端點作為唯一資料源：啟動時先 `GET /zh-tw/earthquake/data/` 建立 session/cookies，再 `POST /zh-tw/earthquake/csv` 下載 **Big5、逗號分隔** CSV。每 **60s** 輪詢一次，因查詢只能選「月」，每輪抓「本月+上月」合併去重後取 **Top N=20**。所有事件（含 <4）都寫入 seen state；只有 **最大震度 ≥4** 才會發 Discord 公告，且只對「已發過且仍≥4」的事件做訊息 edit。輪詢 loop 已加入「可選」退避機制（連續失敗指數退避，上限可設定）。
+以中央氣象署網站的 CSV 端點作為唯一資料源：啟動時先 `GET /zh-tw/earthquake/data/` 建立 session/cookies，再 `POST /zh-tw/earthquake/csv` 下載 **Big5、逗號分隔** CSV。每 **60s** 輪詢一次，因查詢只能選「月」，每輪抓「本月+上月」合併去重後取 **Top N=20**。所有事件（含 <4）都寫入 seen state；只有 **最大震度 ≥4** 才會發 Discord 公告，且只對「已發過且仍≥4」的事件做訊息 edit。輪詢 loop 已加入「可選」退避機制（連續失敗指數退避，上限可設定）。可選 `ALLOW_INSECURE_SSL` 供環境憑證異常時暫時繞過（預設關）。
 
 ## Steps
 
@@ -29,6 +29,7 @@
 - `POST /zh-tw/earthquake/csv`：下載 CSV（`application/x-www-form-urlencoded`）
 - CSV：**Big5**、`,` 分隔
 - Header：`編號,地震時間,經度,緯度,規模,深度,最大震度,位置`
+- 可選：`allow_insecure_ssl`（預設 False，不驗證 SSL 只做故障排除時開啟）
 
 ### event_key 規則（穩健版本）
 
@@ -67,6 +68,7 @@
 - `BACKOFF_BASE_SECONDS` / `BACKOFF_MAX_SECONDS`（可選，若未設則使用固定 interval 重試）
 - `TZ=Asia/Taipei`（建議固定）
 - `ALLOWED_GUILD_ID`（可選）：限制 bot 只在指定伺服器允許 `/setup` 生效。
+- `ALLOW_INSECURE_SSL`（可選，預設 false；僅用於暫時繞過 SSL 驗證問題）
 
 ---
 
@@ -105,15 +107,15 @@
 
 ## Progress
 
-- [ ] 0 Project bootstrap
-- [ ] 1 Dependencies + config
-- [ ] 2 SQLite schema + repo (incl. settings)
-- [ ] 3 Discord bot + /setup + /status
-- [ ] 4 CWA CSV source (GET+POST, 2 months)
-- [ ] 5 CSV parse + normalize
-- [ ] 6 Intensity parsing (>=4)
-- [ ] 7 event_key + fingerprint
-- [ ] 8 Policies (Top20 + publish/edit rules)
-- [ ] 9 Poller + backoff
-- [ ] 10 Renderer/publisher + edit failover
-- [ ] 11 Docker + volume
+- [x] 0 Project bootstrap
+- [x] 1 Dependencies + config
+- [x] 2 SQLite schema + repo (incl. settings)
+- [x] 3 Discord bot + /setup + /status
+- [x] 4 CWA CSV source (GET+POST, 2 months)
+- [x] 5 CSV parse + normalize
+- [x] 6 Intensity parsing (>=4)
+- [x] 7 event_key + fingerprint
+- [x] 8 Policies (Top20 + publish/edit rules)
+- [x] 9 Poller + backoff
+- [x] 10 Renderer/publisher + edit failover
+- [x] 11 Docker + volume

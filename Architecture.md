@@ -61,6 +61,7 @@
   - `GET /zh-tw/earthquake/data/` 建 session
   - `POST /zh-tw/earthquake/csv` 下載 Big5 CSV
   - cookie jar 常駐、固定 UA/Origin/Referer
+  - 可選 `allow_insecure_ssl`（預設關，僅用於環境憑證異常時暫時繞過驗證）
 
 未來擴充：
 - `CwaEewSource`（或其他 EEW 來源）只要輸出同一 domain model。
