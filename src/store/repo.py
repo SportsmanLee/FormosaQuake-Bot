@@ -136,6 +136,12 @@ def list_published(db: Database) -> list[tuple[Any, ...]]:
     )
 
 
+def list_seen(db: Database) -> list[tuple[Any, ...]]:
+    return db.fetchall(
+        "SELECT event_key, event_time, first_seen_at, last_seen_at, intensity_raw, intensity_value, data_hash, last_payload FROM seen_events"
+    )
+
+
 # Convenience async wrappers (execute in default loop executor)
 
 async def async_init(db: Database) -> None:
@@ -200,3 +206,8 @@ async def async_get_published(db: Database, event_key: str) -> tuple[Any, ...] |
 async def async_list_published(db: Database) -> list[tuple[Any, ...]]:
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, list_published, db)
+
+
+async def async_list_seen(db: Database) -> list[tuple[Any, ...]]:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, list_seen, db)
