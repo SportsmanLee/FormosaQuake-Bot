@@ -24,8 +24,15 @@ async def apply_decisions(
     """
 
     channel = client.get_channel(int(channel_id))
-    if channel is None or not isinstance(channel, (discord.TextChannel, discord.Thread, discord.DMChannel)):
-        logging.error("Channel %s not found or not sendable", channel_id)
+    if channel is None:
+        try:
+            channel = await client.fetch_channel(int(channel_id))
+        except Exception as exc:  # noqa: BLE001
+            logging.error("Channel %s not found or not sendable: %s", channel_id, exc)
+            return
+
+    if not isinstance(channel, (discord.TextChannel, discord.Thread, discord.DMChannel)):
+        logging.error("Channel %s not sendable (type=%s)", channel_id, type(channel))
         return
 
     for action, ev, _prior in decisions:
