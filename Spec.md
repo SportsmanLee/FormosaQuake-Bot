@@ -1,6 +1,6 @@
 # Spec: CWA CSV 公告 Bot（最終規格）
 
-以中央氣象署網站的 CSV 端點作為唯一資料源：啟動時先 `GET /zh-tw/earthquake/data/` 建立 session/cookies，再 `POST /zh-tw/earthquake/csv` 下載 **Big5、逗號分隔** CSV。每 **60s** 輪詢一次，因查詢只能選「月」，每輪抓「本月+上月」合併去重後取 **Top N=20**。所有事件（含 <4）都寫入 seen state；只有 **最大震度 ≥4** 才會發 Discord 公告，且只對「已發過且仍≥4」的事件做訊息 edit。
+以中央氣象署網站的 CSV 端點作為唯一資料源：啟動時先 `GET /zh-tw/earthquake/data/` 建立 session/cookies，再 `POST /zh-tw/earthquake/csv` 下載 **Big5、逗號分隔** CSV。每 **60s** 輪詢一次，因查詢只能選「月」，每輪抓「本月+上月」合併去重後取 **Top N=20**。所有事件（含 <4）都寫入 seen state；只有 **最大震度 ≥4** 才會發 Discord 公告，且只對「已發過且仍≥4」的事件做訊息 edit。輪詢 loop 已加入「可選」退避機制（連續失敗指數退避，上限可設定）。
 
 ## Steps
 
@@ -10,6 +10,7 @@
 4. 寫入 state（SQLite）：Top 20 全部更新 `seen_events`（包含 <4、解析失敗也要記錄 raw）。
 5. 強度門檻與發送：解析 `最大震度` 為可比較值；若 `<4` 則不發；若 `>=4` 且未發過則 send 新公告並寫 `published_messages`。
 6. 更新（edit）規則：僅當事件 `>=4` 且已發過、且 `fingerprint` 有變更才 edit；edit 失敗則重發並更新 `message_id` mapping；未 `/setup` 或缺權限則不發不 edit。
+7. Poller backoff：連續失敗時指數退避（帶 jitter），成功後重置；可在未設定 backoff 時退回固定 interval。
 
 ## Further Considerations
 
@@ -63,6 +64,7 @@
 - `POLL_INTERVAL_SECONDS=60`（可寫死也行）
 - `TOP_N=20`（可寫死也行）
 - `INTENSITY_THRESHOLD=4`（可寫死也行）
+- `BACKOFF_BASE_SECONDS` / `BACKOFF_MAX_SECONDS`（可選，若未設則使用固定 interval 重試）
 - `TZ=Asia/Taipei`（建議固定）
 - `ALLOWED_GUILD_ID`（可選）：限制 bot 只在指定伺服器允許 `/setup` 生效。
 
@@ -102,6 +104,7 @@
 - `updated_at`
 
 ## Progress
+
 - [ ] 0 Project bootstrap
 - [ ] 1 Dependencies + config
 - [ ] 2 SQLite schema + repo (incl. settings)

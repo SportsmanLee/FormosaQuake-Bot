@@ -14,6 +14,7 @@ from policies.publish import Decision, decide_actions
 from policies.selection import select_top_n
 from sources.cwa_csv import CwaCsvSource
 from store import repo
+from service.backoff import Backoff, sleep_with_backoff
 
 
 async def fetch_month_events(source: CwaCsvSource, year: int, month: int, tz: str) -> list[EarthquakeEvent]:
@@ -103,9 +104,10 @@ async def poll_loop(
     intensity_threshold: float,
     tz: str,
     interval_seconds: int,
+    backoff: Backoff | None = None,
 ) -> None:
-    """Loop forever, running poll on interval. Does not include backoff yet."""
-
+    """Loop forever, running poll on interval with optional backoff on failures."""
+    failures = 0
     while True:
         try:
             decisions = await run_poll(
@@ -116,6 +118,12 @@ async def poll_loop(
                 tz=tz,
             )
             logging.info("poll finished; decisions=%d", len(decisions))
+            failures = 0
+            await asyncio.sleep(interval_seconds)
         except Exception as exc:  # noqa: BLE001
-            logging.exception("poll error: %s", exc)
-        await asyncio.sleep(interval_seconds)
+            failures += 1
+            logging.exception("poll error (failures=%d): %s", failures, exc)
+            if backoff:
+                await sleep_with_backoff(backoff, failures)
+            else:
+                await asyncio.sleep(interval_seconds)

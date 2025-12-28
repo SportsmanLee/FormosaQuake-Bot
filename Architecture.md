@@ -10,7 +10,7 @@
 ---
 
 ## High-level Dataflow
-1. Scheduler 每 60s 觸發一次 pipeline
+1. Scheduler 每 60s 觸發一次 pipeline（失敗時可指數退避）
 2. Source layer 取得「本月 + 上月」CSV（Big5）
 3. Parser/Normalizer 解析 CSV → 產生標準化事件 `EarthquakeEvent`
 4. Selector 合併/去重/排序 → Top N=20
@@ -135,7 +135,7 @@ Repository 介面（概念）：
 ---
 
 ## Error Handling & Resilience
-- **來源錯誤**：timeout/5xx/429 → 指數退避；必要時重建 session（再 GET data/）
+- **來源錯誤**：timeout/5xx/429 → 指數退避（帶 jitter）；必要時重建 session（再 GET data/）
 - **解析錯誤**：Big5 解碼或欄位缺失 → 只記錄 log，不發錯誤公告
 - **Discord 錯誤**：
   - 缺權限/找不到頻道/訊息被刪：不崩潰；edit 失敗就重發並更新 mapping
