@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     allowed_guild_id: int | None = None
     backoff_base_seconds: float | None = None
     backoff_max_seconds: float | None = None
+    allow_insecure_ssl: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

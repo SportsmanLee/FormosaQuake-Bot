@@ -28,7 +28,9 @@ async def async_main() -> None:
         backoff = Backoff(settings.backoff_base_seconds, settings.backoff_max_seconds)
 
     # start CWA source
-    source = CwaCsvSource(base_url=str(settings.data_base_url))
+    source = CwaCsvSource(
+        base_url=str(settings.data_base_url), allow_insecure_ssl=settings.allow_insecure_ssl
+    )
 
     async def poller_task() -> None:
         await poll_loop(

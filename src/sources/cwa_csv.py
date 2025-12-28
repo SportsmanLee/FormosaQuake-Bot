@@ -71,6 +71,7 @@ def build_form_payload(year: int, month: int, table_length: int = 100) -> dict[s
 class CwaCsvSource:
     base_url: str
     table_length: int = 100
+    allow_insecure_ssl: bool = False
     _session: aiohttp.ClientSession | None = None
     _init_lock: asyncio.Lock = asyncio.Lock()
 
@@ -78,7 +79,10 @@ class CwaCsvSource:
         if self._session is None or self._session.closed:
             async with self._init_lock:
                 if self._session is None or self._session.closed:
-                    self._session = aiohttp.ClientSession(base_url=self.base_url)
+                    connector = None
+                    if self.allow_insecure_ssl:
+                        connector = aiohttp.TCPConnector(ssl=False)
+                    self._session = aiohttp.ClientSession(base_url=self.base_url, connector=connector)
                     # hit landing page to build session/cookies
                     async with self._session.get(DATA_PATH) as resp:
                         resp.raise_for_status()
