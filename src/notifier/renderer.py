@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import discord
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from domain.models import EarthquakeEvent
 
 
@@ -19,6 +22,23 @@ def _color_for_intensity(intensity: float | None) -> int:
     return 0x6699FF
 
 
+def _format_event_time(ts: str) -> str:
+    """Render event_time ISO string into human-friendly local display.
+
+    If parsing fails, returns the original string.
+    """
+
+    try:
+        dt = datetime.fromisoformat(ts)
+        # Keep tz info if present; if naive, default to Asia/Taipei for display
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=ZoneInfo("Asia/Taipei"))
+        tzname = dt.tzname() or "local"
+        return dt.strftime("%Y-%m-%d %H:%M:%S ") + tzname
+    except Exception:
+        return ts
+
+
 def render_embed(event: EarthquakeEvent) -> discord.Embed:
     color = _color_for_intensity(event.intensity_value)
     if event.event_key.startswith("E:"):
@@ -31,7 +51,7 @@ def render_embed(event: EarthquakeEvent) -> discord.Embed:
         title += f" | 最大震度 {event.intensity_raw}"
 
     embed = discord.Embed(title=title, color=color)
-    embed.add_field(name="發震時間", value=event.event_time, inline=False)
+    embed.add_field(name="發震時間", value=_format_event_time(event.event_time), inline=False)
     embed.add_field(name="規模", value=f"M {event.magnitude:.1f}")
     embed.add_field(name="深度", value=f"{event.depth_km:.1f} km")
     embed.add_field(name="最大震度", value=event.intensity_raw or "未知")
