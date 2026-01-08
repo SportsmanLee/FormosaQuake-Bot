@@ -46,8 +46,29 @@ def decide_actions(
         # update in-memory fingerprint so caller can persist to seen
         ev.fingerprint = fp
 
-        # below threshold: never send/edit
-        if ev.intensity_value is None or ev.intensity_value < intensity_threshold:
+        # Only numbered reports (event_key startswith "E:") are eligible to publish/edit.
+        is_numbered_report = ev.event_key.startswith("E:")
+        if not is_numbered_report:
+            results.append((Decision.SKIP, ev, None))
+            continue
+
+        # rules: primary threshold on intensity; secondary exception for
+        # shallow, larger quakes even if intensity僅達 3（常見實務門檻）。
+        primary_hit = (
+            ev.intensity_value is not None
+            and ev.intensity_value >= intensity_threshold
+        )
+        secondary_hit = (
+            ev.intensity_value is not None
+            and ev.intensity_value >= 3
+            and ev.magnitude is not None
+            and ev.magnitude >= 5.5
+            and ev.depth_km is not None
+            and ev.depth_km <= 40
+        )
+
+        # below all thresholds: never send/edit
+        if not (primary_hit or secondary_hit):
             results.append((Decision.SKIP, ev, None))
             continue
 
